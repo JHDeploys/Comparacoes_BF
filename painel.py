@@ -71,7 +71,7 @@ with col2:
     st.markdown('### Arquivo do Mês Atual')
     mes_atual = st.file_uploader("Escolha o Arquivo do Mês Atual", type=["csv", "xlsx"])
 
-compara = st.button("Realizar Comparação")
+comparar = st.button("Realizar Comparação")
 
 if comparar:
     if mes_anterior is None or mes_atual is None:
