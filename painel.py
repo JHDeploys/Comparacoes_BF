@@ -70,7 +70,13 @@ with col2:
     st.markdown('### Arquivo do Mês Atual')
     mes_atual = st.file_uploader("Escolha o Arquivo do Mês Atual", type=["csv", "xlsx"])
 
-comparar = st.button("Realizar Comparação")
+col1, col2, col3 = st.columns([1,6,1])
+with col1:
+    st.write("")
+with col2:
+    comparar = st.button("Realizar Comparação")
+with col3:
+    st.write("")
 st.divider()
 
 if comparar:
