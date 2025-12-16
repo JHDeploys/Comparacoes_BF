@@ -47,6 +47,7 @@ def comparacao_meses(df_anterior, df_atual, coluna_id):
         st.error(f"Erro na comparação dos dados: {e}")
         return None, None
 
+
 st.title("Comparação entre Bases de Dados")
 st.markdown(
     """
@@ -89,11 +90,11 @@ if comparar:
                     st.markdown( f"<h2 style='color:red;'>{len(unicos_anterior)}</h3>", unsafe_allow_html=True)
                     st.dataframe(unicos_anterior)
 
-                    csv1 = unicos_anterior.to_excel(index=False).incode("utf-8")
+                    csv1 = unicos_anterior.to_csv(index=False).encode("utf-8")
                     st.download_button(
-                        "⬇️ Baixar saídas (XLSX)",
+                        "⬇️ Baixar saídas (CSV)",
                         data=csv1,
-                        file_name="sairam_mes_anterior.xlsx",
+                        file_name="sairam_mes_anterior.csv",
                         mime="text/csv",
                     )
 
