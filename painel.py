@@ -83,7 +83,7 @@ if comparar:
                 col1, col2 = st.columns(2)
 
                 with col1:
-                    st.markdown("> **Saíram no Mês Anterior:**")
+                    st.markdown(">## **Saíram no Mês Anterior:**")
                     st.markdown( f"<h2 style='color:red;'>{len(unicos_anterior)}</h3>", unsafe_allow_html=True)
                     st.dataframe(unicos_anterior)
 
@@ -96,7 +96,7 @@ if comparar:
                     )
 
                 with col2:
-                    st.markdown("> **Entraram no Mês Atual:**")
+                    st.markdown(">## **Entraram no Mês Atual:**")
                     st.markdown( f"<h2 style='color:green;'>{len(unicos_atual)}</h3>", unsafe_allow_html=True)
                     st.dataframe(unicos_atual)
 
