@@ -62,9 +62,13 @@ st.markdown(
 st.divider()
 
 seletor = st.selectbox("Selecione a Coluna de Comparação", ["COD_FAMILIAR", "NOME", "CPF", "NIS"])
-
-mes_anterior = st.file_uploader("Escolha o Arquivo do Mês Anterior", type=["csv", "xlsx"])
-mes_atual = st.file_uploader("Escolha o Arquivo do Mês Atual", type=["csv", "xlsx"])
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown('### Arquivo do Mês Anterior')
+    mes_anterior = st.file_uploader("Escolha o Arquivo do Mês Anterior", type=["csv", "xlsx"])
+with col2:
+    st.markdown('### Arquivo do Mês Atual')
+    mes_atual = st.file_uploader("Escolha o Arquivo do Mês Atual", type=["csv", "xlsx"])
 
 comparar = st.button("Realizar Comparação")
 st.divider()
