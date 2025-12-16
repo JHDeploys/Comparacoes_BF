@@ -70,7 +70,7 @@ with col2:
     st.markdown('### Arquivo do Mês Atual')
     mes_atual = st.file_uploader("Escolha o Arquivo do Mês Atual", type=["csv", "xlsx"])
 
-col1, col2, col3 = st.columns([1,6,1])
+col1, col2, col3 = st.columns(3)
 with col1:
     st.write("")
 with col2:
