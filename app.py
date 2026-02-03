@@ -1,6 +1,9 @@
 import pandas as pd
 import streamlit as st
 
+# ===============================
+# Configuração da página
+# ===============================
 st.set_page_config(
     page_title="Comparação entre Bases de Dados",
     page_icon="📊",
@@ -9,11 +12,8 @@ st.set_page_config(
 )
 
 # ===============================
-# Estado
+# Estado (dados apenas, sem UI)
 # ===============================
-if "comparar" not in st.session_state:
-    st.session_state.comparar = False
-
 if "df_saida" not in st.session_state:
     st.session_state.df_saida = None
 
@@ -33,7 +33,7 @@ def ler_arquivo(arquivo):
                 return pd.read_csv(arquivo, sep=None, engine="python")
             except Exception:
                 return pd.read_csv(arquivo, sep=";", encoding="latin1")
-        if nome.endswith(".xlsx"):
+        elif nome.endswith(".xlsx"):
             return pd.read_excel(arquivo)
     except Exception as e:
         st.error(f"Erro ao ler arquivo: {e}")
@@ -42,91 +42,110 @@ def ler_arquivo(arquivo):
 
 def comparar(df_a, df_b, col):
     if col not in df_a.columns or col not in df_b.columns:
-        st.error(f"Coluna {col} não encontrada.")
+        st.error(f"Coluna '{col}' não encontrada em um dos arquivos.")
         return None, None
-    return (
-        df_a[~df_a[col].isin(df_b[col])],
-        df_b[~df_b[col].isin(df_a[col])]
-    )
+
+    saida = df_a[~df_a[col].isin(df_b[col])]
+    entrada = df_b[~df_b[col].isin(df_a[col])]
+
+    return saida, entrada
 
 # ===============================
-# UI
+# UI - Cabeçalho
 # ===============================
 st.title("Comparação entre Bases de Dados")
 st.subheader("Assistência Social - Prefeitura de Pedra Branca PB")
 st.divider()
 
+# ===============================
+# Seleção da coluna
+# ===============================
 coluna = st.selectbox(
     "Selecione a Coluna de Comparação",
     ["COD_FAMILIAR", "NOME", "CPF", "NIS"]
 )
 
+# ===============================
+# Upload de arquivos
+# ===============================
 up1, up2 = st.columns(2)
 
 with up1:
     st.markdown("### Arquivo do Mês Anterior")
-    arq_ant = st.file_uploader("Arquivo anterior", ["csv", "xlsx"], key="ant")
+    arq_ant = st.file_uploader(
+        "Arquivo anterior",
+        ["csv", "xlsx"],
+        key="arquivo_anterior"
+    )
 
 with up2:
     st.markdown("### Arquivo do Mês Atual")
-    arq_atual = st.file_uploader("Arquivo atual", ["csv", "xlsx"], key="atu")
-
-if st.button("Realizar Comparação"):
-    if arq_ant and arq_atual:
-        df_ant = ler_arquivo(arq_ant)
-        df_at = ler_arquivo(arq_atual)
-
-        if df_ant is not None and df_at is not None:
-            st.session_state.df_saida, st.session_state.df_entrada = comparar(
-                df_ant, df_at, coluna
-            )
-            st.session_state.comparar = True
-    else:
-        st.warning("Selecione os dois arquivos.")
+    arq_atual = st.file_uploader(
+        "Arquivo atual",
+        ["csv", "xlsx"],
+        key="arquivo_atual"
+    )
 
 st.divider()
 
 # ===============================
-# Resultados
+# Formulário (evita bug de DOM)
 # ===============================
-r1, r2 = st.columns(2)
+with st.form("form_comparacao"):
+    submitted = st.form_submit_button("🔍 Realizar Comparação")
 
-with r1:
-    st.markdown("## Saíram no mês anterior")
+    if submitted:
+        if not arq_ant or not arq_atual:
+            st.warning("Selecione os dois arquivos para comparar.")
+        else:
+            df_ant = ler_arquivo(arq_ant)
+            df_at = ler_arquivo(arq_atual)
 
-    if st.session_state.df_saida is not None:
-        st.metric("Quantidade", len(st.session_state.df_saida))
+            if df_ant is not None and df_at is not None:
+                st.session_state.df_saida, st.session_state.df_entrada = comparar(
+                    df_ant, df_at, coluna
+                )
 
-        st.dataframe(
-            st.session_state.df_saida,
-            use_container_width=True
-        )
+# ===============================
+# Resultados (RENDERIZAÇÃO SEGURA)
+# ===============================
+resultado_container = st.empty()
 
-        st.download_button(
-            "⬇️ Baixar saídas",
-            data=st.session_state.df_saida.to_csv(index=False).encode("utf-8"),
-            file_name="sairam_mes_anterior.csv",
-            mime="text/csv"
-        )
-    else:
-        st.info("Nenhuma comparação realizada ainda.")
+if st.session_state.df_saida is not None and st.session_state.df_entrada is not None:
+    with resultado_container.container():
+        st.divider()
+        r1, r2 = st.columns(2)
 
-with r2:
-    st.markdown("## Entraram no mês atual")
+        with r1:
+            st.markdown("## Saíram no mês anterior")
+            st.metric("Quantidade", len(st.session_state.df_saida))
 
-    if st.session_state.df_entrada is not None:
-        st.metric("Quantidade", len(st.session_state.df_entrada))
+            st.dataframe(
+                st.session_state.df_saida,
+                use_container_width=True
+            )
 
-        st.dataframe(
-            st.session_state.df_entrada,
-            use_container_width=True
-        )
+            st.download_button(
+                "⬇️ Baixar saídas",
+                data=st.session_state.df_saida.to_csv(index=False).encode("utf-8"),
+                file_name="sairam_mes_anterior.csv",
+                mime="text/csv",
+                key="download_saida"
+            )
 
-        st.download_button(
-            "⬇️ Baixar entradas",
-            data=st.session_state.df_entrada.to_csv(index=False).encode("utf-8"),
-            file_name="entraram_mes_atual.csv",
-            mime="text/csv"
-        )
-    else:
-        st.info("Nenhuma comparação realizada ainda.")
+        with r2:
+            st.markdown("## Entraram no mês atual")
+            st.metric("Quantidade", len(st.session_state.df_entrada))
+
+            st.dataframe(
+                st.session_state.df_entrada,
+                use_container_width=True
+            )
+
+            st.download_button(
+                "⬇️ Baixar entradas",
+                data=st.session_state.df_entrada.to_csv(index=False).encode("utf-8"),
+                file_name="entraram_mes_atual.csv",
+                mime="text/csv",
+                key="download_entrada"
+            )
