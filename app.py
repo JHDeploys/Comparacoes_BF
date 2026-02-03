@@ -87,50 +87,46 @@ if st.button("Realizar Comparação"):
 st.divider()
 
 # ===============================
-# Resultados (sempre existem)
+# Resultados
 # ===============================
 r1, r2 = st.columns(2)
 
 with r1:
     st.markdown("## Saíram no mês anterior")
-    qtd_saida = 0 if st.session_state.df_saida is None else len(st.session_state.df_saida)
-    st.metric("Quantidade", qtd_saida)
 
-    st.dataframe(
-        st.session_state.df_saida if st.session_state.comparar else pd.DataFrame(),
-        use_container_width=True
-    )
+    if st.session_state.df_saida is not None:
+        st.metric("Quantidade", len(st.session_state.df_saida))
 
-    st.download_button(
-        "⬇️ Baixar saídas",
-        data=(
-            st.session_state.df_saida.to_csv(index=False).encode("utf-8")
-            if st.session_state.df_saida is not None
-            else b""
-        ),
-        file_name="sairam_mes_anterior.csv",
-        mime="text/csv",
-        disabled=st.session_state.df_saida is None
-    )
+        st.dataframe(
+            st.session_state.df_saida,
+            use_container_width=True
+        )
+
+        st.download_button(
+            "⬇️ Baixar saídas",
+            data=st.session_state.df_saida.to_csv(index=False).encode("utf-8"),
+            file_name="sairam_mes_anterior.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("Nenhuma comparação realizada ainda.")
 
 with r2:
     st.markdown("## Entraram no mês atual")
-    qtd_ent = 0 if st.session_state.df_entrada is None else len(st.session_state.df_entrada)
-    st.metric("Quantidade", qtd_ent)
 
-    st.dataframe(
-        st.session_state.df_entrada if st.session_state.comparar else pd.DataFrame(),
-        use_container_width=True
-    )
+    if st.session_state.df_entrada is not None:
+        st.metric("Quantidade", len(st.session_state.df_entrada))
 
-    st.download_button(
-        "⬇️ Baixar entradas",
-        data=(
-            st.session_state.df_entrada.to_csv(index=False).encode("utf-8")
-            if st.session_state.df_entrada is not None
-            else b""
-        ),
-        file_name="entraram_mes_atual.csv",
-        mime="text/csv",
-        disabled=st.session_state.df_entrada is None
-    )
+        st.dataframe(
+            st.session_state.df_entrada,
+            use_container_width=True
+        )
+
+        st.download_button(
+            "⬇️ Baixar entradas",
+            data=st.session_state.df_entrada.to_csv(index=False).encode("utf-8"),
+            file_name="entraram_mes_atual.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("Nenhuma comparação realizada ainda.")
