@@ -1,9 +1,6 @@
 import pandas as pd
 import streamlit as st
 
-# ===============================
-# Configuração da página
-# ===============================
 st.set_page_config(
     page_title="Comparação entre Bases de Dados",
     page_icon="📊",
@@ -12,14 +9,16 @@ st.set_page_config(
 )
 
 # ===============================
-# Inicialização do estado
+# Estado
 # ===============================
 if "comparar" not in st.session_state:
     st.session_state.comparar = False
 
-if "boot" not in st.session_state:
-    st.session_state.boot = True
-    st.rerun()
+if "df_saida" not in st.session_state:
+    st.session_state.df_saida = None
+
+if "df_entrada" not in st.session_state:
+    st.session_state.df_entrada = None
 
 # ===============================
 # Funções
@@ -29,144 +28,109 @@ def ler_arquivo(arquivo):
         return None
     try:
         nome = arquivo.name.lower()
-
         if nome.endswith(".csv"):
             try:
                 return pd.read_csv(arquivo, sep=None, engine="python")
             except Exception:
                 return pd.read_csv(arquivo, sep=";", encoding="latin1")
-
         if nome.endswith(".xlsx"):
             return pd.read_excel(arquivo)
-
-        st.error("Formato de arquivo não suportado. Envie CSV ou XLSX.")
-        return None
-
     except Exception as e:
-        st.error(f"Erro ao ler o arquivo: {e}")
-        return None
+        st.error(f"Erro ao ler arquivo: {e}")
+    return None
 
 
-def comparacao_meses(df_anterior, df_atual, coluna_id):
-    try:
-        if coluna_id not in df_anterior.columns or coluna_id not in df_atual.columns:
-            st.error(f"A coluna '{coluna_id}' não existe em um dos arquivos.")
-            return None, None
-
-        anterior = df_anterior[
-            ~df_anterior[coluna_id].isin(df_atual[coluna_id])
-        ]
-        atual = df_atual[
-            ~df_atual[coluna_id].isin(df_anterior[coluna_id])
-        ]
-
-        return anterior, atual
-
-    except Exception as e:
-        st.error(f"Erro na comparação: {e}")
+def comparar(df_a, df_b, col):
+    if col not in df_a.columns or col not in df_b.columns:
+        st.error(f"Coluna {col} não encontrada.")
         return None, None
-
+    return (
+        df_a[~df_a[col].isin(df_b[col])],
+        df_b[~df_b[col].isin(df_a[col])]
+    )
 
 # ===============================
-# Cabeçalho
+# UI
 # ===============================
 st.title("Comparação entre Bases de Dados")
-st.markdown(
-    """
-    <span style="color:yellow; font-weight:bold; font-size:18px;">
-        Assistência Social - Prefeitura de Pedra Branca PB
-    </span>
-    """,
-    unsafe_allow_html=True
-)
-
+st.subheader("Assistência Social - Prefeitura de Pedra Branca PB")
 st.divider()
 
-# ===============================
-# Controles (layout fixo)
-# ===============================
-seletor = st.selectbox(
+coluna = st.selectbox(
     "Selecione a Coluna de Comparação",
     ["COD_FAMILIAR", "NOME", "CPF", "NIS"]
 )
 
-upload_col1, upload_col2 = st.columns(2)
+up1, up2 = st.columns(2)
 
-with upload_col1:
+with up1:
     st.markdown("### Arquivo do Mês Anterior")
-    mes_anterior = st.file_uploader(
-        "Escolha o Arquivo do Mês Anterior",
-        type=["csv", "xlsx"]
-    )
+    arq_ant = st.file_uploader("Arquivo anterior", ["csv", "xlsx"], key="ant")
 
-with upload_col2:
+with up2:
     st.markdown("### Arquivo do Mês Atual")
-    mes_atual = st.file_uploader(
-        "Escolha o Arquivo do Mês Atual",
-        type=["csv", "xlsx"]
-    )
+    arq_atual = st.file_uploader("Arquivo atual", ["csv", "xlsx"], key="atu")
 
 if st.button("Realizar Comparação"):
-    st.session_state.comparar = True
+    if arq_ant and arq_atual:
+        df_ant = ler_arquivo(arq_ant)
+        df_at = ler_arquivo(arq_atual)
+
+        if df_ant is not None and df_at is not None:
+            st.session_state.df_saida, st.session_state.df_entrada = comparar(
+                df_ant, df_at, coluna
+            )
+            st.session_state.comparar = True
+    else:
+        st.warning("Selecione os dois arquivos.")
 
 st.divider()
 
 # ===============================
-# Área de resultado (sempre existe)
+# Resultados (sempre existem)
 # ===============================
-res_col1, res_col2 = st.columns(2)
+r1, r2 = st.columns(2)
 
-with res_col1:
-    saidas_container = st.container()
+with r1:
+    st.markdown("## Saíram no mês anterior")
+    qtd_saida = 0 if st.session_state.df_saida is None else len(st.session_state.df_saida)
+    st.metric("Quantidade", qtd_saida)
 
-with res_col2:
-    entradas_container = st.container()
+    st.dataframe(
+        st.session_state.df_saida if st.session_state.comparar else pd.DataFrame(),
+        use_container_width=True
+    )
 
-# ===============================
-# Preenchimento condicional
-# ===============================
-if st.session_state.comparar:
+    st.download_button(
+        "⬇️ Baixar saídas",
+        data=(
+            st.session_state.df_saida.to_csv(index=False).encode("utf-8")
+            if st.session_state.df_saida is not None
+            else b""
+        ),
+        file_name="sairam_mes_anterior.csv",
+        mime="text/csv",
+        disabled=st.session_state.df_saida is None
+    )
 
-    if mes_anterior is None or mes_atual is None:
-        st.warning("Por favor, selecione os dois arquivos para comparar.")
+with r2:
+    st.markdown("## Entraram no mês atual")
+    qtd_ent = 0 if st.session_state.df_entrada is None else len(st.session_state.df_entrada)
+    st.metric("Quantidade", qtd_ent)
 
-    else:
-        df_anterior = ler_arquivo(mes_anterior)
-        df_atual = ler_arquivo(mes_atual)
+    st.dataframe(
+        st.session_state.df_entrada if st.session_state.comparar else pd.DataFrame(),
+        use_container_width=True
+    )
 
-        if df_anterior is not None and df_atual is not None:
-            unicos_anterior, unicos_atual = comparacao_meses(
-                df_anterior, df_atual, seletor
-            )
-
-            if unicos_anterior is not None and unicos_atual is not None:
-
-                with saidas_container:
-                    st.markdown(">## **Saíram no Mês Anterior:**")
-                    st.markdown(
-                        f"<h2 style='color:red;'>{len(unicos_anterior)}</h2>",
-                        unsafe_allow_html=True
-                    )
-                    st.dataframe(unicos_anterior, use_container_width=True)
-
-                    st.download_button(
-                        "⬇️ Baixar saídas (CSV)",
-                        data=unicos_anterior.to_csv(index=False).encode("utf-8"),
-                        file_name="sairam_mes_anterior.csv",
-                        mime="text/csv",
-                    )
-
-                with entradas_container:
-                    st.markdown(">## **Entraram no Mês Atual:**")
-                    st.markdown(
-                        f"<h2 style='color:green;'>{len(unicos_atual)}</h2>",
-                        unsafe_allow_html=True
-                    )
-                    st.dataframe(unicos_atual, use_container_width=True)
-
-                    st.download_button(
-                        "⬇️ Baixar entradas (CSV)",
-                        data=unicos_atual.to_csv(index=False).encode("utf-8"),
-                        file_name="entraram_mes_atual.csv",
-                        mime="text/csv",
-                    )
+    st.download_button(
+        "⬇️ Baixar entradas",
+        data=(
+            st.session_state.df_entrada.to_csv(index=False).encode("utf-8")
+            if st.session_state.df_entrada is not None
+            else b""
+        ),
+        file_name="entraram_mes_atual.csv",
+        mime="text/csv",
+        disabled=st.session_state.df_entrada is None
+    )
